@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Continuous deployment infrastructure for my basic hello-world repo
+
+Parameters:
+  GithubAccessToken:
+    Description: The access token to use when cloning and updating the repo.
+    Type: String
+  GithubURL:
+    Description: The URL of the repo to build.
+    Type: String
+
+Outputs:
+  ArtifactsBucket:
+    Description: S3 bucket used for artifacts
+    Export:
+      Name: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - !Ref 'AWS::Region'
+          - ArtifactsBucket
+    Value: !Ref ArtifactsBucket
+
+Resources:
+  CodeBuildPolicy:
+    Description: Setting IAM policy for service role for CodeBuild
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Effect: Allow
+          Resource: '*'
+        - Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          Effect: Allow
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactsBucket'
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactsBucket'
+              - /*
+      PolicyName: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - CodeBuildPolicy
+      Roles:
+        - !Ref 'CodeBuildRole'
+    Type: AWS::IAM::Policy
+
+
+  CodeSourceCredentials:
+    Type: AWS::CodeBuild::SourceCredential
+    Properties:
+      AuthType: PERSONAL_ACCESS_TOKEN
+      ServerType: GITHUB
+      Token: !Ref GithubAccessToken
+
+  CodeBuildProject:
+    DependsOn:
+    - CodeBuildPolicy
+    Properties:
+      Artifacts:
+        Location: !Ref 'ArtifactsBucket'
+        Name: 'build-output.zip'
+        NamespaceType: BUILD_ID
+        Packaging: ZIP
+        Path: 'codebuild'
+        Type: S3
+      Description: !Join
+        - ''
+        - - 'CodeBuild Project for '
+          - !Ref 'AWS::StackName'
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        ImagePullCredentialsType: CODEBUILD
+        Type: LINUX_CONTAINER
+      Name: !Ref 'AWS::StackName'
+      ServiceRole: !Ref 'CodeBuildRole'
+      Source:
+        Type: GITHUB
+        Location: !Ref GithubURL
+        Auth:
+          Resource: '!Ref CodeSourceCredentials'
+          Type: OAUTH
+    Type: AWS::CodeBuild::Project
+
+  CodeBuildRole:
+    Description: Creating service role in IAM for AWS CodeBuild
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+      Path: /
+      RoleName: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - CodeBuild
+    Type: AWS::IAM::Role
+
+  ArtifactBucketPolicy:
+    Description: Setting Amazon S3 bucket policy for AWS CodeBuild access
+    Properties:
+      Bucket: !Ref 'ArtifactsBucket'
+      PolicyDocument:
+        Id: SSEAndSSLPolicy
+        Statement:
+        - Action:
+          - s3:GetObject
+          - s3:GetObjectVersion
+          - s3:GetBucketVersioning
+          Condition:
+            Bool:
+              aws:SecureTransport: false
+          Effect: Allow
+          Principal:
+            AWS:
+            - !GetAtt
+              - CodeBuildRole
+              - Arn
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactsBucket'
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactsBucket'
+              - /*
+          Sid: AllowlistedGet
+        - Action:
+          - s3:PutObject
+          Effect: Allow
+          Principal:
+            AWS:
+            - !GetAtt
+              - CodeBuildRole
+              - Arn
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactsBucket'
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactsBucket'
+              - /*
+          Sid: AllowlistedPut
+        Version: 2012-10-17
+    Type: AWS::S3::BucketPolicy
+
+  ArtifactsBucket:
+    DeletionPolicy: Delete
+    Description: Creating Amazon S3 bucket for AWS CodeBuild artifacts
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - ArtifactsBucket
+      VersioningConfiguration:
+        Status: Enabled
+    Type: AWS::S3::Bucket
