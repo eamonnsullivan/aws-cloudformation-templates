@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "My first, most basic cloudformation attempt."
+Parameters:
+  Name:
+    Description: The name of the bucket you want to create
+    Type: String
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref Name
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        -
+          Key: CreatedWith
+          Value: My cloudformation
+        -
+          Key: Owner
+          Value: Eamonn Sullivan
+        -
+          Key: Production
+          Value: false
+        -
+          Key: Updated
+          Value: true
