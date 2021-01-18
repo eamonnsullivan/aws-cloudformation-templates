@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 
-Description: Continuous deployment infrastructure for a github repo
+Description: Build example for a Github repo. Reads the buildspec.yml from the repo and placing the artifacts in an S3 bucket.
 
 Parameters:
   GithubAccessToken:
