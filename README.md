@@ -4,15 +4,15 @@ I'm attempting to learn cloudformation. These are just a collection of templates
 
 ## Usage
 
-Change to one of the directories (e.g., `s3`) and run the AWS CLI (v2) like so:
+Run the AWS CLI (v2) like so:
 
 ``` bash
 $ aws --profile home cloudformation create-stack --stack-name BasicS3Example \
-      --template-body  file:///home/eamonn/git/aws-cloudformation-templates/s3/basic-s3-bucket.yml \
-      --parameters file:///home/eamonn/git/aws-cloudformation-templates/s3/parameters.json
+      --template-body  file:///location/of/basic-s3-bucket.yml \
+      --parameters file:///location/of/parameters.json
 $ aws --profile home cloudformation update-stack --stack-name BasicS3Example \
-      --template-body file:///home/eamonn/git/aws-cloudformation-templates/s3/basic-s3-bucket.yml \
-      --parameters file:///home/eamonn/git/aws-cloudformation-templates/s3/parameters.json
+      --template-body file:///location/of/basic-s3-bucket.yml \
+      --parameters file:///location/of/parameters.json
 ```
 
 You'll have to provide your own parameters.json. They look like this:
