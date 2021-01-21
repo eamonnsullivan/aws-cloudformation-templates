@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Basic example to create a role with the necessary permissions to run codebuild jobs.
+
+Resources:
+  CodeBuildPolicy:
+    Description: Setting IAM policy for service role for CodeBuild
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Effect: Allow
+          Resource: '*'
+      PolicyName: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - CodeBuildPolicy
+      Roles:
+        - !Ref 'CodeBuildRole'
+    Type: AWS::IAM::Policy
+
+  CodeBuildRole:
+    Description: Creating service role in IAM for AWS CodeBuild
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+      Path: /
+      RoleName: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - CodeBuild
+    Type: AWS::IAM::Role
+
+Outputs:
+  CodeBuildRole:
+    Description: The role created
+    Value: !GetAtt CodeBuildRole.Arn
