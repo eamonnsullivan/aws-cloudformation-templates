@@ -6,7 +6,9 @@ Parameters:
   ApiResources:
     Description: The internal API I need to invoke
     Type: CommaDelimitedList
-
+  ECRRepo:
+    Description: The ECR to retrieve docker images from.
+    Type: String
 
 Resources:
   CodeBuildPolicy:
@@ -19,12 +21,29 @@ Resources:
           - logs:CreateLogStream
           - logs:PutLogEvents
           Effect: Allow
+          Sid: LoggingPermissions
           Resource: '*'
         - Action:
             - execute-api:Invoke
           Effect: Allow
+          Sid: APIInvokePermissions
           Resource:
             Ref: ApiResources
+        - Action:
+            - ecr:GetDownloadUrlForLayer
+            - ecr:BatchGetImage
+            - ecr:DescribeImages
+            - ecr:DescribeRepositories
+            - ecr:ListImages
+            - ecr:BatchCheckLayerAvailability
+            - ecr:GetRepositoryPolicy
+          Effect: Allow
+          Sid: ContainerRepoPermissions
+          Resource: !Ref ECRRepo
+        - Action:
+            - ecr:GetAuthorizationToken
+          Effect: Allow
+          Resource: '*'
       PolicyName: !Join
         - '-'
         - - !Ref 'AWS::StackName'

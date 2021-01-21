@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >
+  Build example for a Github repo, but with a specified role (that is
+  presumably already created). It reads the buildspec.yml from the
+  specified repository.
+
+Parameters:
+  GithubAccessToken:
+    Description: The access token to use when cloning and updating the repo.
+    Type: String
+  GithubURL:
+    Description: The URL of the repo to build.
+    Type: String
+  CodeBuildRoleArn:
+    Description: The ARN of the role to use when building
+    Type: String
+
+Resources:
+  CodeSourceCredentials:
+    Type: AWS::CodeBuild::SourceCredential
+    Properties:
+      AuthType: PERSONAL_ACCESS_TOKEN
+      ServerType: GITHUB
+      Token: !Ref GithubAccessToken
+
+  CodeBuildProject:
+    Properties:
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Description: !Join
+        - ''
+        - - 'CodeBuild Project for '
+          - !Ref 'AWS::StackName'
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        ImagePullCredentialsType: CODEBUILD
+        Type: LINUX_CONTAINER
+      Name: !Ref 'AWS::StackName'
+      ServiceRole: !Ref 'CodeBuildRoleArn'
+      Source:
+        Type: GITHUB
+        Location: !Ref GithubURL
+        Auth:
+          Resource: '!Ref CodeSourceCredentials'
+          Type: OAUTH
+    Type: AWS::CodeBuild::Project
